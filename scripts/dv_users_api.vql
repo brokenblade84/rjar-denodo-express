@@ -1,0 +1,22 @@
+CREATE OR REPLACE REST WEBSERVICE dv_users_api
+    CONNECTION (
+        CHUNKSIZE = 1000
+        CHUNKTIMEOUT = 90000
+        QUERYTIMEOUT = 900000
+        POOLENABLED = true
+        POOLINITSIZE = 0
+        POOLMAXACTIVE = 30
+    )
+    DEFAULTREPRESENTATION = JSON
+    SUPPORTEDREPRESENTATIONS (JSON)
+    RESOURCES (
+        VIEW dv_users FIELDS (
+            id : 'int', 
+            username : 'text'
+        )
+    )
+    OPTIONS ( NULLVALUESASEMPTYXMLELEMENTS = false
+        ALLOW_CORS_ORIGINS (*) ENABLED
+        PROCESS_FUNCTIONS_IN_SELECT_PARAMETER = true ) 
+    OPENAPI2 ( API_VERSION = '1.0.0' ) 
+    FOLDER = '/4 - rest api';

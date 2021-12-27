@@ -1,0 +1,36 @@
+version: '3.3'
+services:
+  my-sql:
+    image: mysql:5.7
+    container_name: 'my-sql'
+    environment:
+      MYSQL_DATABASE: 'db'      
+      MYSQL_USER: 'admin'
+      MYSQL_PASSWORD: 'admin'      
+      MYSQL_ROOT_PASSWORD: 'admin'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'      
+    volumes:
+      - ./metadata/MySqlDb:/var/lib/mysql  
+  denodo:
+    build: 
+      context: ./src/denodo
+    container_name: 'denodo-8'
+    restart: 'always'
+    hostname: localhost
+    ports:
+      - "9999:9999"
+      - "9996:9996"
+      - "9995:9995"
+      - "9090:9090"
+    links: 
+      - my-sql
+    volumes: 
+      - ./src/denodo/denodo-express-lic-8_0-202112.lic:/opt/denodo/conf/denodo.lic
+      - ./drivers/mysql-connector-java-5.1.49.jar:/opt/denodo/extensions/thirdparty/lib/mysql-connector-java-5.1.49.jar
+      - ./drivers/mysql-connector-java-5.1.49-bin.jar:/opt/denodo/extensions/thirdparty/lib/mysql-connector-java-5.1.49-bin.jar
+      - ./metadata/metadata_database_configuration.properties:/opt/denodo/bin/metadata_database_configuration.properties
+#      - ./metadata/denodo_metadata:/opt/denodo/metadata
+#      - ./metadata/denodo_logs:/opt/denodo/logs

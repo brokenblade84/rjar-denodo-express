@@ -1,0 +1,8 @@
+#Development Ide
+.idea
+.vscode
+.vs
+
+metadata/
+**/denodo-express-install-8_0-linux64
+**/denodo-express-lic-8_0-202112.lic

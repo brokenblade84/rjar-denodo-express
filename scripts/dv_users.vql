@@ -1,0 +1,7 @@
+CREATE OR REPLACE VIEW dv_users
+   FOLDER = '/3 - Derived Views' 
+   DESCRIPTION = 'Test view to get some data from bv_users' 
+AS 
+   SELECT id,
+          username 
+     FROM bv_users;
