@@ -1,0 +1,19 @@
+[req]
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = req_ext
+
+[req_distinguished_name]
+countryName                     = AR
+stateOrProvinceName             = CABA
+localityName                    = CABA
+organizationalUnitName          = docker-registry.internal
+commonName                      = docker-registry.internal
+emailAddress                    = test@test.com
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+IP.1 = 192.168.1.33
+DNS.1 = docker-registry.internal
