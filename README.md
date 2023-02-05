@@ -70,7 +70,7 @@ kubectl -n docker-registry create secret generic docker-registry-auth-secret --f
 To be able to use the internal docker registry in the deployments run below command to generate the secret with required credentials.
 
 ```pwsh
-kubectl create secret docker-registry regcred --docker-server=docker-registry.internal --docker-username=<USERNAME> --docker-password=<PASSWORD> --docker-email=<USER_EMAIL>
+kubectl create secret docker-registry regcred --docker-server=docker-registry.internal:5000 --docker-username=<USERNAME> --docker-password=<PASSWORD> --docker-email=<USER_EMAIL>
 ```
 
 ### Docker registry cluster access
@@ -102,7 +102,7 @@ docker build -t denodo-express:8.0 -f docker/denodo-express/Dockerfile ./docker/
 ```pwsh
 docker login docker-registry.internal -u <USERNAME> -p <PASSWORD>
 docker tag denodo-express:8.0 docker-registry.internal:5000/denodo-express:8.0
-docker push <docker-registry.internal:5000/denodo-express:8.0
+docker push docker-registry.internal:5000/denodo-express:8.0
 docker logout
 ```
 
