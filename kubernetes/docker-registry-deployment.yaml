@@ -1,0 +1,136 @@
+# docker-registry-deployment.yaml
+
+# Create the persistentVolume.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: docker-registry-pv
+  namespace: docker-registry
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /tmp/repository
+---
+# Create the persistent volume claim.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-registry-pvc
+  namespace: docker-registry
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Create docker registry deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry-deployment
+  namespace: docker-registry
+  labels:
+    app: docker-registry-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-registry-app
+  template:
+    metadata:
+      labels:
+        app: docker-registry-app
+        namespace: docker-registry
+    spec:
+      containers:
+        - name: docker-registry-pod
+          image: registry:2.6.2
+          volumeMounts:
+            - name: repo-vol
+              mountPath: "/var/lib/registry"
+            - name: certs-vol
+              mountPath: "/certs"
+              readOnly: true
+            - name: auth-vol
+              mountPath: "/auth"
+              readOnly: true
+          env:
+            - name: REGISTRY_HTTP_ADDR
+              value: 0.0.0.0:5000
+            - name: REGISTRY_AUTH
+              value: "htpasswd"
+            - name: REGISTRY_AUTH_HTPASSWD_REALM
+              value: "Registry Realm"
+            - name: REGISTRY_AUTH_HTPASSWD_PATH
+              value: "/auth/htpasswd"
+            - name: REGISTRY_HTTP_TLS_CERTIFICATE
+              value: "/certs/tls.crt"
+            - name: REGISTRY_HTTP_TLS_KEY
+              value: "/certs/tls.key"
+          ports:
+            - containerPort: 5000
+              hostPort: 5000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+      volumes:
+        - name: repo-vol
+          persistentVolumeClaim:
+            claimName: docker-registry-pvc
+        - name: certs-vol
+          secret:
+            secretName: docker-registry-certs-secret
+        - name: auth-vol
+          secret:
+            secretName: docker-registry-auth-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: docker-registry-app
+  name: docker-registry-service
+  namespace: docker-registry
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 5000
+  selector:
+    app: docker-registry-app
+---
+# Create docker registry ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: docker-registry-ingress
+  namespace: docker-registry
+  labels:
+    app: docker-registry-app
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+    - host: docker-registry.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: docker-registry-service
+                port:
+                  number: 5000
+  tls:
+    - hosts:
+        - docker-registry.internal
+      secretName: docker-registry-certs-secret

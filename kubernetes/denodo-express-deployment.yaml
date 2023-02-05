@@ -1,0 +1,132 @@
+# denodo-8-deployment.yaml
+
+# Create the persistentVolume.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: denodo-express-pv
+  namespace: denodo-express
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /tmp/denodo/metadata
+---
+# Create the persistent volume claim.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: denodo-express-pvc
+  namespace: denodo-express
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: denodo-express-app
+  name: denodo-express-service
+  namespace: denodo-express
+spec:
+  type: LoadBalancer
+  ports:
+    - name: svc-denodo
+      protocol: "TCP"
+      port: 8999
+      targetPort: denodo-port
+    - name: svc-rmi-r
+      protocol: "TCP"
+      port: 8997
+      targetPort: jdbc-rmi-rgstry
+    - name: svc-rmi-f
+      protocol: "TCP"
+      port: 8996
+      targetPort: jdbc-rmi-fctory
+    - name: svc-odbc
+      protocol: "TCP"
+      port: 8995
+      targetPort: odbc
+    - name: svc-web
+      protocol: "TCP"
+      port: 8090
+      targetPort: web-container
+  selector:
+    app: denodo-express-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: denodo-express-deployment
+  namespace: denodo-express
+  labels:
+    app: denodo-express-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: denodo-express-app
+  template:
+    metadata:
+      labels:
+        app: denodo-express-app
+        namespace: denodo
+    spec:
+      hostname: denodo-express
+      initContainers:
+        - name: denodo-express-init-pod
+          image: docker-registry.local:5000/denodo-express-8
+          command:
+            [
+              "/bin/sh",
+              "-c",
+              'if [ -z "$(ls -A /tmp)" ]; then cp -R /opt/denodo/metadata/* /tmp/; fi',
+            ]
+          volumeMounts:
+            - name: metadata-volume
+              mountPath: /tmp
+      containers:
+        - name: denodo-express-pod
+          image: docker-registry.local:5000/denodo-express-8
+          volumeMounts:
+            - name: metadata-volume
+              mountPath: /opt/denodo/metadata
+            - name: config-volume
+              mountPath: /opt/denodo/conf/denodo.lic
+              subPath: denodo.lic
+          env:
+            - name: FACTORY_PORT
+              value: "8997"
+          ports:
+            - name: denodo-port
+              containerPort: 9999
+            - name: jdbc-rmi-rgstry
+              containerPort: 9997
+            - name: jdbc-rmi-fctory
+              containerPort: 9995
+            - name: odbc
+              containerPort: 9996
+            - name: web-container
+              containerPort: 9090
+          resources:
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+            requests:
+              cpu: "2"
+              memory: "2Gi"
+      imagePullSecrets:
+        - name: regcred
+      volumes:
+        - name: metadata-volume
+          persistentVolumeClaim:
+            claimName: denodo-express-pvc
+        - name: config-volume
+          configMap:
+            name: denodo-license
